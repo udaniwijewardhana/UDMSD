@@ -37,4 +37,4 @@ The 'Single-species Joint Model' gives a combination of count model and zero-inf
 ```r
 shiny::runGitHub( "UDMSD", "uwijewardhana") 
 ```
-- User can access the standard R-repository to download and install package R-INLA byhttps://www.r-inla.org/download-install.
+- User can access the standard R-repository to download and install package R-INLA by https://www.r-inla.org/download-install.
