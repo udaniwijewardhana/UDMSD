@@ -1,6 +1,6 @@
 # UDMSD
 
-## Single species annual spatial and temporal joint model to geospatial zero-inflated data
+## Single species annual spatial and temporal joint model to geostatistical zero-inflated data
 
 To estimate the persistence, user can consider INLA models with zero-inflation probability model which means joint models. Joint temporal, spatial and spatio-temporal models are especially developed for data which has access zeros. Access zeros are divided into two types such as structural zeros and random zeros. Structural zeros refer to zero responses by those subjects whose count response will always be zero and random zeros that occur to subjects whose count response can be greater than zero but appear to be zero due to sampling variability (He et al., 2014). The responses of species data came from two different distributions such as occurrence and abundance which have two models for each response that are affected by spatial and temporal common factors. Therefore, it is better to use joint model. Negative Binomial model is more in line for zero inflation species data which resolve the overdispersion issue as well. Therefore in this window users can get the summary outputs for Joint NB model (Cameron and Trivedi, 2013), Joint Hurdle NB model (Cragg, 1971; Mullahy, 1986) or Joint Zero Inflated Negative Binomial model (Cameron and Trivedi, 1998) which are the most common zero inflation joint models to identify the significance of the predictors and to identify the persistency.
 
@@ -20,7 +20,7 @@ The application consists of 2 pages with main window: main window allows the use
 
 In this page, user can fit joint species distribution models using INLA. Since species abundance data usually have access and true zeros, zero inflation models are ideal to fit the abundance. Therefore, while overcoming overdispersion Negative Binomial model, Negative Binomial Hurdle model and ZINB model have given as options using log linear regression as the link function. Binomial distribution has used for occurrence using logistic regression as the link function. First, a user must adjust the parameters to build the INLA mesh. Only non-convex meshes could be built in this app. Then users can fit spatial, temporal or spatio-temporal joint species distribution while changing the model options and distribution. Users also have the option to select which type of spatial and temporal models could be done. Temporal model has the option to choose the random effect model such as 'iid', 'ar1', 'rw1' or 'rw2' and the spatial effect model such as 'iid' for temporal models and 'spde' for spatial or spatio-temporal models. Posterior plots are visualizing for spatial or spatio-temporal models.
 
-# Input file: 
+### Input file: 
 
 Dataframe with "Count", "Year", "Latitude", "Longitude", "Locality" and other numeric predictors (optional). These variables are case sensitive. Only applicable up to five predictor variables. Predictor variables display as "p.z1", "p.y2", etc. The order is the exact order in dataframe.    
 
@@ -34,8 +34,8 @@ The 'Single-species Joint Model' gives a combination of count model and zero-inf
 
 ### Installation
 
-To build this Shiny app, we need to clone the Zip file from UDMSD and save it in our computer. This folder contains a sample data .CSV file, the vignette and app.R file. Then, we can launch the app by clicking the Run App button at the top of the RStudio editor or by executing runApp("appdir_path")where appdir_path is the path of the directory that contains the app.R file. For this we need to install R and RStudio in our computer. The users who do not have R in their computer can use UDMSD to launch the Shiny app. The application uses the R-INLA package which can be downloaded from http://www.r−inla.org.
+To build this Shiny app, we need to clone the Zip file from UDMSD and save it in our computer. This folder contains a sample data .CSV file, the vignette and app.R file. Then, we can launch the app by clicking the Run App button at the top of the RStudio editor or by executing runApp("appdir_path")where appdir_path is the path of the directory that contains the app.R file. For this we need to install R and RStudio in our computer. The users who do not have R in their computer can use UDMSD to launch the Shiny app. The application uses the R-INLA package which can be downloaded from http://www. r ??? inla. org.
 
 ```r
-shiny::runGitHub( "UDMSD", "uwijewardhana") 
+Udani Wijewardhana (udaniwijewardhana@gmail.com)
 ```
