@@ -20,7 +20,7 @@ The application consists of 2 pages with main window: main window allows the use
 
 In this page, user can fit joint species distribution models using INLA. Since species abundance data usually have access and true zeros, zero inflation models are ideal to fit the abundance. Therefore, while overcoming overdispersion Negative Binomial model, Negative Binomial Hurdle model and ZINB model have given as options using log linear regression as the link function. Binomial distribution has used for occurrence using logistic regression as the link function. First, a user must adjust the parameters to build the INLA mesh. Only non-convex meshes could be built in this app. Then users can fit spatial, temporal or spatio-temporal joint species distribution while changing the model options and distribution. Users also have the option to select which type of spatial and temporal models could be done. Temporal model has the option to choose the random effect model such as 'iid', 'ar1', 'rw1' or 'rw2' and the spatial effect model such as 'iid' for temporal models and 'spde' for spatial or spatio-temporal models. Posterior plots are visualizing for spatial or spatio-temporal models.
 
-### Input file: 
+### Input file
 
 Dataframe with "Count", "Year", "Latitude", "Longitude", "Locality" and other numeric predictors (optional). These variables are case sensitive. Only applicable up to five predictor variables. Predictor variables display as "p.z1", "p.y2", etc. The order is the exact order in dataframe.    
 
