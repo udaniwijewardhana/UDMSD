@@ -1,6 +1,6 @@
 # UDMSD
 
-## Single species annual spatial and temporal joint model to geostatistical zero-inflated data
+## Single species annual spatial and temporal joint model to geospatial zero-inflated data
 
 To estimate the persistence, user can consider INLA models with zero-inflation probability model which means joint models. Joint temporal, spatial and spatio-temporal models are especially developed for data which has access zeros. Access zeros are divided into two types such as structural zeros and random zeros. Structural zeros refer to zero responses by those subjects whose count response will always be zero and random zeros that occur to subjects whose count response can be greater than zero but appear to be zero due to sampling variability (He et al., 2014). The responses of species data came from two different distributions such as occurrence and abundance which have two models for each response that are affected by spatial and temporal common factors. Therefore, it is better to use joint model. Negative Binomial model is more in line for zero inflation species data which resolve the overdispersion issue as well. Therefore in this window users can get the summary outputs for Joint NB model (Cameron and Trivedi, 2013), Joint Hurdle NB model (Cragg, 1971; Mullahy, 1986) or Joint Zero Inflated Negative Binomial model (Cameron and Trivedi, 1998) which are the most common zero inflation joint models to identify the significance of the predictors and to identify the persistency.
 
