@@ -1,416 +1,367 @@
-# Loading libraries
 library(shiny)
 library(DT)
 library(plyr)
 library(dplyr)
-library(breakpoint)
-library(cumSeg)
-library(changepoint)
-library(bcp)
+library(lattice)
+library(gridExtra)
+library(INLA)
+library(stringi)
 
 ################################################################################################################
-# Shiny App for Single Species Univariate Changepoint Analysis
+# Shiny App for Single species joint models for geospatial annual data 
 ################################################################################################################
+
+# First the user needs to upload the data csv file into the application and 
+# then select whether normalize the numerical predictors or not.
+#         The data file should include only:
+#         1. Year - Detected Year
+#         2. Locality - Location
+#         3. Latitude
+#         4. Longitude
+#         5. count - Dependent variable for count model
+#         6. zero - Dependent variable for count model
+#         with or without predictor variables (numeric).
+#         The above names are case sensitive."),
+# A sample format of the data can be found in https://github.com/uwijewardhana/UDMSD.
 
 ### Shiny user interface ###
 
 ui <- fluidPage(
   
-titlePanel(strong("UDMCA - Shiny App for Single Species Univariate Changepoint Analysis", style = "color:#3474A7")),
+titlePanel(h3("UDMSD - Single species annual spatial and temporal joint models to geostatistical data", titleWidth = 350)),
 hr(),
   
-div(style="display: inline-block;vertical-align:top; width: 300px;", fileInput("file", "Choose data CSV File", multiple = FALSE, accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv"))),
-div(style="display: inline-block;vertical-align:top; width: 300px;", selectInput("datanorm", "Count data normalization:", choices=c("rnorm", "stand", "none"), selected = "none")),
-div(style="display: inline-block;vertical-align:top; width: 300px;", selectInput("prednorm", "Predictors normalization:", choices=c("rnorm", "stand", "none"), selected = "none")),
+div(style="display: inline-block;vertical-align:top; width: 200px;", fileInput("file", "Choose data CSV File", multiple = FALSE, accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv"))),
+div(style="display: inline-block;vertical-align:top; width: 200px;", selectInput("prednorm", "Predictors normalization:", choices=c("rnorm", "stand", "none"), selected = "none")),
 
 tabsetPanel(
     
-    tabPanel("Auunual Data",
-             fluidRow(column(12, DT::dataTableOutput("contents")))
-    ),
+tabPanel("Auunual Data",
+         fluidRow(style = "margin-top: 25px;",
+                  column(7, p(tags$b('Annual Count Data', style = "font-size: 150%; font-family:Helvetica; color:#4c4c4c; text-align:left;"))),
+                  column(5, p(tags$b('Annual Predictor Data', style = "font-size: 150%; font-family:Helvetica; color:#4c4c4c; text-align:left;")))),
+         fluidRow(column(7, DT::dataTableOutput("contents")),
+                  column(5, verbatimTextOutput("predictors")))
+),
     
-    tabPanel("Changepoint Analysis",
-             sidebarLayout(
-             sidebarPanel(div(style='height:900px; overflow: scroll',
-             selectInput("changepoint", "changepoint method", choices=c("changepoint", "breakpoint", "cumSeg", "bcp"), selected = "changepoint"),
-             
-             # changepoint method                   
-             conditionalPanel(
-             condition = "input.changepoint == 'changepoint'",
-             tags$h3("Algorithms of changepoint package:"),
-             tags$ol(
-             tags$li("cpt.mean(data,penalty='MBIC',pen.value=0,method='AMOC', Q=5,test.stat='Normal',class=TRUE,param.estimates=TRUE, minseglen=1)"),
-             tags$li("cpt.var(data,penalty='MBIC',pen.value=0,know.mean=FALSE, mu=NA,method='AMOC',Q=5,test.stat='Normal', class=TRUE,param.estimates=TRUE,minseglen=2)"),
-             tags$li("cpt.meanvar(data,penalty='MBIC',pen.value=0,method='AMOC', Q=5,test.stat='Normal',class=TRUE,param.estimates=TRUE, shape=1,minseglen=2)")),
-             selectInput("changes", "type of changes to identify", choices=c("mean", "variance", "mean and variance"), selected = "mean"),
-             selectInput("penalty", "penalty", choices=c("BIC", "MBIC", "AIC"), selected = "AIC"),
-             selectInput("method", "method", choices=c("AMOC", "PELT", "SegNeigh", "BinSeg"), selected = "PELT"),
-             numericInput("Q", "maximum number of changepoints to search", 5, min = 0, max = NA, step = 1),
-             helpText("The maximum number of changepoints to search for using the BinSeg method.
-             The maximum number of segments (number of changepoints + 1) to search for using the SegNeigh method."),
-             selectInput("test.stat", "test statistic", choices=c("Normal", "Gamma", "Exponential", "Poisson"), selected = "Normal"),
-             helpText("Gamma, Exponential and Poisson distribution only applicable for mean and variance function."),
-             selectInput("class", "class", choices=c("TRUE", "FALSE"), selected = "TRUE"),
-             selectInput("param.estimates", "param.estimates", choices=c("TRUE", "FALSE"), selected = "TRUE"),
-             numericInput("shape", "shape parameter for Gamma distribution", 1, min = -100, max = NA, step = 0.001),
-             numericInput("minseglen", "minseglen", 1, min = 1, max = NA, step = 1),
-             helpText("Positive integer giving the minimum segment length (no. of observations between
-                                           changes), default is the minimum allowed by theory. For cpt.var and cpt.meanvar,
-                                           the minimum minseglen is 2 and for cpt.mean, the minimum minseglen is 1.")),
-                                
-             # breakpoint method
-             conditionalPanel(
-             condition = "input.changepoint == 'breakpoint'",
-             tags$h3("Algorithms of breakpoint package:"),
-             tags$ol(
-             tags$li("CE.NB(data, Nmax = 10, eps = 0.01, rho = 0.05, M = 200, h = 5, a = 0.8, b = 0.8, distyp = 1, penalty = 'BIC', parallel = FALSE)"),
-             tags$li("CE.NB.Init(data, init.locs, eps = 0.01, rho = 0.05, M = 200, h = 5, a = 0.8, b = 0.8, distyp = 1, penalty = 'BIC', var.init = 1e+05, parallel = FALSE)"),
-             tags$li("CE.Normal.Init.Mean(data, init.locs, eps = 0.01, rho = 0.05, M = 200, h = 5, a = 0.8, b = 0.8, distyp = 1, penalty = 'BIC', var.init = 1e+05, parallel = FALSE)"),
-             tags$li("CE.Normal.Init.MeanVar(data, init.locs, eps = 0.01, rho = 0.05, M = 200, h = 5, a = 0.8, b = 0.8, distyp = 1, penalty = 'BIC', var.init = 1e+05, parallel = FALSE)"),
-             tags$li("CE.Normal.Mean(data, Nmax = 10, eps = 0.01, rho = 0.05, M = 200, h = 5, a = 0.8, b = 0.8, distyp = 1, penalty = 'BIC', parallel = FALSE)"),
-             tags$li("CE.Normal.MeanVar(data, Nmax = 10, eps = 0.01, rho = 0.05, M = 200, h = 5, a = 0.8, b = 0.8, distyp = 1, penalty = 'BIC', parallel = FALSE)"),
-             tags$li("CE.ZINB(data, Nmax = 10, eps = 0.01, rho = 0.05, M = 200, h = 5, a = 0.8, b = 0.8, distyp = 1, penalty = 'BIC', parallel = FALSE)"),
-             tags$li("CE.ZINB.Init(data, init.locs, eps = 0.01, rho = 0.05, M = 200, h = 5, a = 0.8, b = 0.8, distyp = 1, penalty = 'BIC', var.init = 1e+05, parallel = FALSE)")),
-             selectInput("algorithm", "breakpoint function", choices=c("CE.NB", "CE.NB.Init", "CE.Normal.Init.Mean", "CE.Normal.Init.MeanVar", "CE.ZINB", "CE.ZINB.Init"), selected = "CE.NB"),
-             numericInput("Nmax", "maximum number of breakpoints to search", 10, min = 0, max = NA, step = 1),
-             numericInput("eps", "the cut-off value for the stopping criterion in the CE method", 0.01, min = 0, max = 100, step = 0.00001),
-             numericInput("rho", "the fraction which is used to obtain the best performing set of sample solutions", 0.05, min = 0, max = NA, step = 0.00001),
-             numericInput("M", "sample size to be used in simulating the locations of break-points", 200, min = 0, max = NA, step = 1),
-             numericInput("h", "minimum aberration width", 5, min = 0, max = NA, step = 1),
-             numericInput("a", "a smoothing parameter value", 0.8, min = 0, max = NA, step = 0.00001),
-             helpText("It is used in the four parameter beta distribution to smooth both shape parameters.
-                      When simulating from the truncated normal distribution,
-                      this value is used to smooth the estimates of the mean values."),
-             numericInput("b", "a smoothing parameter value", 0.8, min = 0, max = NA, step = 0.00001),
-             helpText("It is used in the truncated normal distribution to smooth the estimates of the standard deviation."),
-             selectInput("distyp", "distribution to simulate break-point locations", choices=c("1", "2"), selected = "1"),
-             helpText("Options: 1 = four parameter beta distribution, 2 = truncated normal distribution"),
-             selectInput("penalty", "penalty", choices=c("BIC", "AIC"), selected = "BIC"),
-             numericInput("var.init", "Initial variance value to facilitate the search process", 100000, min = 0, max = NA, step = 0.00001),
-             selectInput("parallel", "parallel", choices=c("TRUE", "FALSE"), selected = "FALSE"),
-             textInput("init.locs", "Initial break-point locations - enter a vector (comma delimited) - e.g. '0,1,2'", NULL)),
-                                
-             # cumSeg method                 
-             conditionalPanel(
-             condition = "input.changepoint == 'cumSeg'",
-             tags$h3("Algorithms of cumSeg package:"),
-             tags$li("fit.control(toll = 0.001, it.max = 5, display = FALSE, last = TRUE, maxit.glm = 25, h = 1, stop.if.error = FALSE)"),
-             tags$li("sel.control(display = FALSE, type = c('bic', 'mdl', 'rss'), S = 1, Cn = log(log(n)), alg = c('stepwise', 'lasso'), edf.psi = TRUE)"),
-             tags$li("jumpoints(y, x, k = min(30, round(length(y)/10)), output = '2', psi = NULL, round = TRUE, control = fit.control(), selection = sel.control())"),
-             hr(),
-             numericInput("k", "k = the starting number of changepoints", 2, min = 0, max = NA, step = 1),
-             helpText("It should be quite larger than the supposed number of (true) changepoints.
-                      This argument is ignored if starting values of the
-                      changepoints are specified via psi."),
-             selectInput("output", "output", choices=c(1,2,3), selected = 1),
-             textInput("psi", "psi = starting values for the changepoints - enter a vector (comma delimited) - e.g. '0,1,2'", NULL),
-             helpText("When psi=NULL (default), k quantiles are assumed."),
-             selectInput("round", "round", choices=c("TRUE", "FALSE"), selected = "TRUE"),
-             numericInput("toll", "toll = positive convergence tolerance", 0.001, min = 0, max = NA, step = 0.0001),
-             numericInput("it.max", "it.max = integer giving the maximal number of iterations", 5, min = 0, max = NA, step = 1),
-             selectInput("display", "display", choices=c("TRUE", "FALSE"), selected = "FALSE"),
-             selectInput("last", "last", choices=c("TRUE", "FALSE"), selected = "TRUE"),
-             numericInput("maxit.glm", "maxit.glm", 25, min = 0, max = NA, step = 1),
-             numericInput("h", "h", 1, min = 0, max = NA, step = 1),
-             selectInput("stop.if.error", "stop.if.error", choices=c("TRUE", "FALSE"), selected = "FALSE"),
-             helpText("logical indicating if the algorithm should stop when one or more estimated
-                      changepoints do not assume admissible values."),
-             selectInput("type", "type", choices=c("bic", "mdl", "rss"), selected = "bic"),
-             numericInput("S", "S", 1, min = 0, max = NA, step = 1),
-             helpText("If type = 'rss' the optimal model is selected when the residual sum of squares
-                      decreases by the threshold S."),
-             numericInput("Cn", "Cn", 1, min = 0, max = NA, step = 0.0000001),
-             helpText("If type= 'bic' a character string (as a function of 'n') to specify to generalized
-                      BIC. If Cn=1 the standard BIC is used."),
-             selectInput("alg", "alg", choices=c("stepwise", "lasso"), selected = "stepwise"),
-             selectInput("edf.psi", "edf.psi", choices=c("TRUE", "FALSE"), selected = "TRUE")),
-                                
-             # bcp method
-             conditionalPanel(
-             condition = "input.changepoint == 'bcp'",
-             tags$h3("Algorithm of bcp package:"),
-             tags$li("bcp(y, x = NULL, id = NULL, adj = NULL, w0 = NULL, p0 = 0.2, d = 10, burnin = 50, mcmc = 500, return.mcmc = FALSE,
-             boundaryType = 'node', p1 = 1, freqAPP = 20, nreg = -1)"),
-             #numericInput("adjk", "k = the number of neighbors assumed for a typical vertex in adj list", 4, min = 4, max = 8, step = 4),
-             #helpText("An adjacency list. Indexing the observations from 1 to n, the i-th
-             #         element of the list is a vector of indices (offset by 1) for nodes that share an
-             #         edge with node i. Generates an adjacency list for a n node by m node grid,
-             #         assuming a maximum of k neighbors. k must be always 4 or 8. n and m are always >= 2.
-             #         Adjacency list algorithm = makeAdjGrid(n,m,k)"),
-             selectInput("pred", "predictors", choices=c("Yes", "No"), selected = "No"),
-             helpText("w0 is applicable when predictors are available."),
-             textInput("w0", "w0 - enter a vector (comma delimited) - e.g. '0.2,0.5,0.7'", NULL),
-             numericInput("p0", "p0", 0.2, min = 0, max = 1, step = 0.01),
-             helpText("w0 and p0 are optional values which are between 0 and 1
-                      for Barry and Haritgan's hyperparameters; these
-                      default to the value 0.2, which has been found to work well."),
-             numericInput("p1", "p1 = The proportion of Active Pixel Passes run that are the actual
-                          Active Pixel Passes", 1, min = 0, max = 1, step = 0.01),
-             numericInput("d", "d", 10, min = 0, max = NA, step = 1),
-             helpText("a positive number only used for linear regression change point models.
-                      Lower d means higher chance of fitting the full linear model
-                      (instead of the intercept-only model)."),
-             numericInput("burnin", "burnin", 50, min = 0, max = NA, step = 1),
-             numericInput("mcmc", "mcmc", 500, min = 0, max = NA, step = 1),
-             selectInput("return.mcmc", "return.mcmc", choices=c("TRUE", "FALSE"), selected = "FALSE"),
-             numericInput("freqAPP", "freqAPP", 20, min = 0, max = NA, step = 1),
-             selectInput("boundaryType", "boundaryType", choices=c("node", "edge"), selected = "node"),
-             numericInput("nreg", "nreg", -1, min = 2, max = NA, step = 1),
-             helpText("only applicable for regression; related to parameter d describing the
-                      minimum number of observations needed in a block to allow for fitting a regression
-                      model. Defaults to 2*number of predictors.")
-))),
+tabPanel("Single-species Joint Model",
+         sidebarLayout(
+         sidebarPanel(div(style='height:1100px; overflow: scroll',
+               sliderInput(inputId = "offset", label = "offsets for automatic boundaries", value = c(0.1, 0.3), min = 0.05, max = 2),
+               sliderInput(inputId = "max.edge", label = "max.edge", value = c(0.05, 0.5), min = 0.01, max = 2),
+               sliderInput(inputId = "cutoff", label = "cutoff", value = 0.01, min = 0, max = 0.2),
+               sliderInput(inputId = "min.angle", label = "min.angle", value = c(21, 30), min = 1, max = 35),
+               numericInput("convex", "convex for boundary", 0.5, min = NA, max = NA, step = 0.0001),
+               actionButton("mesh", "mesh"),
+               selectInput("distribution", "Distribution of count model:",
+                           choices=c("Negative Binomial", "Zeroinflated Negative Binomial",
+                            "Negative Binomial Hurdle"), selected = "Negative Binomial Hurdle"),
+               selectInput(inputId = "pred", label = "Regresstion with predictors?", choices=c("yes", "no"), selected = "yes"),
+               uiOutput("independent"),
+               h5('Generate Interaction Variables Here (if applicable)'),
+               uiOutput("makeInteract1"), uiOutput("makeInteract2"),
+               uiOutput("uiAdded"), actionButton("actionBtnAdd", "Create Interaction Term"),
+               selectInput("tempeffect", "temporal random effect model:", choices=c("'ar1'", "'iid'", "'rw1'", "'rw2'"), selected = "'ar1'"),
+               helpText("Posterior plots are only applicable for spatial or spatio-temporal models."),
+               selectInput("speffect", "spatial random effect model:", choices=c("spde", "'iid'"), selected = "'iid'"),
+               actionButton("summary", "Summary")
+               )),
                
-mainPanel(
-          tags$h3("Summary results of changepoint method:"),
-          fluidRow(div(style='height:400px; overflow: scroll', verbatimTextOutput("changepoint"))),
-          tags$h3("Changepoint Plot:"),
-          fluidRow(plotOutput("changepointPlot")))
+mainPanel(fluidRow(column(4, tags$h3("Mesh:"), uiOutput("tab")),
+                   column(8, tags$h3("Posterior Plots:"))),
+          fluidRow(column(4, div(style='height:360px', plotOutput("mesh", "mesh", width = "80%", height = "360px"))),
+                   column(4, div(style='height:360px', plotOutput("posteriormPlot"))),
+                   column(4, div(style='height:360px', plotOutput("posteriorsdPlot")))),
+          fluidRow(column(12, tags$h3("Summary results of species joint model:"), div(style='height:590px; overflow: scroll',                                                                                                     verbatimTextOutput("summary")))))
 ))))
 
 ### Shiny server ###
 
 server <- function(input, output) {
   
-# Input data csv file
+# Read Data CSV file
   
-filedata <- reactive({
+filedata1 <- reactive({
     inFile <- input$file
     if (is.null(inFile)){return(NULL)}
     
-    x <- data.frame(read.csv(inFile$datapath, fileEncoding="UTF-8-BOM"))
-
-    x$Count0 <- x$Count
-    x$Count0[is.na(x$Count0)] <- 0
+    x <- as.data.frame(read.csv(inFile$datapath, fileEncoding="UTF-8-BOM"))
+    x$count <- as.character(x$count)
+    x$count <- as.numeric(x$count)
+    return(x)
+})
+  
+# Extract numeric predictor variables
+  
+filedata2 <- reactive({
+    req(input$file)
+    x <- filedata1()
     
-    if(ncol(x)>3){
-    p = subset(x, select = -c(Year,Count,Count0))
+    y = dplyr::select_if(x, is.numeric)
+    if(ncol(y)>6){
+    p = subset(y, select = -c(count, zero, Latitude, Longitude))
+    p <- unique(p)
+    p = subset(p, select = -c(Year))
     }else {p = NULL}
     
     if(!is.null(p)){
     for(i in 1:ncol(p)){
     if(input$prednorm == "rnorm"){p[,i] <- round(rnorm(p[,i]), digits = 4)
-    }else if(input$prednorm == "stand") {p[,i] <- round(scale(p[,i]), digits = 4)
-    }else {p[,i] <- round(p[,i], digits = 4)}}
-    }
-    
-    if(input$datanorm == "rnorm"){x$Count0 <- round(rnorm(x$Count0), digits = 4)
-    } else if (input$datanorm == "stand"){x$Count0 <- round(scale(x$Count0), digits = 4) 
-    } else {x$Count0 <- round(x$Count0, digits = 4)}
-    
-    z = subset(x, select = c(Year,Count,Count0))
-    
-    if(!is.null(p)){
-      Final = cbind(z, p)
-    }else {
-      Final = x
-    }
-    return(Final)
-})
-
-predictors <- reactive({
-  x <- filedata()
-  p <- subset(x, select = -c(Year,Count,Count0))
-  if(is.null(p)){pred = NULL}else{pred = p}
-  return(p)
+    } else if(input$prednorm == "stand"){p[,i] <- round(scale(p[,i]), digits = 4)
+    } else {p[,i] <- round(p[,i], digits = 4)}}
+    } 
+    return(p)
 })
   
-fit <- reactive({
-       fit <- fit.control(toll = input$toll, it.max = input$it.max, display = input$display, last = input$last,
-       maxit.glm = input$maxit.glm, h = input$h, stop.if.error = input$stop.if.error)
-return(fit)
-})
-  
-sel <- reactive({
-       sel <- sel.control(display = input$display, type = input$type, S = input$S,
-       Cn = input$Cn, alg = input$alg, edf.psi = input$edf.psi)
-return(sel)
-})
-  
-psi <- reactive({
-    
-    data <- filedata()
-    x <- 1:nrow(data)
-    
-    if(input$psi == ""){
-      psi = quantile(x, prob= seq(0,1,l=input$k+2)[-c(1,input$k+2)], names=FALSE)
-      return(psi)
-    } else {
-      psi = as.numeric(unlist(strsplit(input$psi,",")))
-      return(psi)
-    }
-})
-  
-w0 <- reactive({
-    
-    inFile <- input$file
-    if (is.null(inFile)){return(NULL)}
-    
-    x <- filedata()
-    predictors <- predictors()
-    
-    w = as.numeric(unlist(strsplit(input$w0,",")))
-    if (any(w > 1) | any(w < 0)){stop("Each element in w0 must be between 0 and 1.")}
-    
-    if(input$pred == "No"){return(NULL)}
-    if(input$pred == "Yes"){
-    if(length(w) == 0){
-        w <- NULL
-    } else {
-    if(length(w) == ncol(predictors)){
-        w <- w
-    } else if(length(w) > ncol(predictors)){
-        stop("Length of w0 is greater than the number of predictors.")
-    } else if(length(w) == 1){
-        w <- rep(w, ncol(predictors))
-        print("Assume you wanted each error-to-signal ratio to be iid from U(0, w0).")
-    } else {
-        stop("Length of w0 is less than the number of predictors.")
-    }
-    }}
-    return(w)
-})
-  
-adjx <- reactive({
-  
-  x <- filedata()
-  predictors <- predictors()
-  n = nrow(x)
-  
-  if (is.null(ncol(x)>3)){
-    m = nrow(x)
-    adj =  makeAdjGrid(n, m, input$adjk)
-  }else {
-    m <- ncol(predictors)
-    adj = makeAdjGrid(n, m, input$adjk)
-  }
-  return(adj)
-})
-  
-# Changepoint analysis
-  
-changepoint <- reactive({
-    
-    data <- filedata()
-    predictors = predictors()
-    w0 <- w0()
-    #adj <- adjx()
-    
-    if(input$changepoint == "changepoint"){
-      
-    if(input$method == "Gamma"){
-        
-    if(input$changes == "mean"){
-          cpt = cpt.mean(data$Count0, penalty=input$penalty, pen.value=input$pen.value, method=input$method, Q=input$Q,
-                         test.stat=input$test.stat, class=input$class, param.estimates=input$param.estimates,
-                         shape=input$shape, minseglen=input$minseglen)
-    } else if(input$changes == "variance"){
-          cpt = cpt.var(data$Count0, penalty=input$penalty, pen.value=input$pen.value, method=input$method, Q=input$Q,
-                        test.stat=input$test.stat, class=input$class, param.estimates=input$param.estimates,
-                        shape=input$shape, minseglen=input$minseglen)
-    } else{
-          cpt = cpt.meanvar(data$Count0, penalty=input$penalty, pen.value=input$pen.value, method=input$method, Q=input$Q,
-                            test.stat=input$test.stat, class=input$class, param.estimates=input$param.estimates,
-                            shape=input$shape, minseglen=input$minseglen)
-    }} else{
-          
-    if(input$changes == "mean"){
-          cpt = cpt.mean(data$Count0, penalty=input$penalty, pen.value=input$pen.value, method=input$method, Q=input$Q,
-                         test.stat=input$test.stat, class=input$class, param.estimates=input$param.estimates,
-                         minseglen=input$minseglen)
-    } else if(input$changes == "variance"){
-          cpt = cpt.var(data$Count0, penalty=input$penalty, pen.value=input$pen.value, method=input$method, Q=input$Q,
-                        test.stat=input$test.stat, class=input$class, param.estimates=input$param.estimates,
-                        minseglen=input$minseglen)
-    } else{
-          cpt = cpt.meanvar(data$Count0, penalty=input$penalty, pen.value=input$pen.value, method=input$method, Q=input$Q,
-                            test.stat=input$test.stat, class=input$class, param.estimates=input$param.estimates,
-                            minseglen=input$minseglen)
-          }}
-    return(cpt)
-      
-    } else if(input$changepoint == "breakpoint"){
-      
-    if(input$algorithm == "CE.NB"){
-        bp = CE.NB(as.data.frame(data$Count0), Nmax = input$Nmax, eps = input$eps, rho = input$rho, M = input$M, h = input$h,
-                   a = input$a, b = input$b, distyp = input$distyp, penalty = input$penalty, parallel = input$parallel)
-    } else if(input$algorithm == "CE.NB.Init"){
-        bp = CE.NB.Init(as.data.frame(data$Count0), as.numeric(unlist(strsplit(input$init.locs,","))),
-                        eps = input$eps, rho = input$rho, M = input$M, h = input$h,
-                        a = input$a, b = input$b, distyp = input$distyp, penalty = input$penalty,
-                        var.init = input$var.init, parallel = input$parallel)
-    } else if(input$algorithm == "CE.NB.Init.Mean"){
-        bp = CE.Normal.Init.Mean(as.data.frame(data$Count0), as.numeric(unlist(strsplit(input$init.locs,","))),
-                                 eps = input$eps, rho = input$rho, M = input$M, h = input$h,
-                                 a = input$a, b = input$b, distyp = input$distyp, penalty = input$penalty,
-                                 var.init = input$var.init, parallel = input$parallel)
-    } else if(input$algorithm == "CE.NB.Init.MeanVar"){
-        bp = CE.Normal.Init.MeanVar(as.data.frame(data$Count0), as.numeric(unlist(strsplit(input$init.locs,","))),
-                                    eps = input$eps, rho = input$rho, M = input$M, h = input$h,
-                                    a = input$a, b = input$b, distyp = input$distyp, penalty = input$penalty,
-                                    var.init = input$var.init, parallel = input$parallel)
-    } else if(input$algorithm == "CE.Normal.Mean"){
-        bp = CE.Normal.Mean(as.data.frame(data$Count0), Nmax = input$Nmax, eps = input$eps, rho = input$rho, M = input$M, h = input$h,
-                            a = input$a, b = input$b, distyp = input$distyp, penalty = input$penalty, parallel = input$parallel)
-    } else if(input$algorithm == "CE.Normal.MeanVar"){
-        bp = CE.Normal.MeanVar(as.data.frame(data$Count0), Nmax = input$Nmax, eps = input$eps, rho = input$rho, M = input$M, h = input$h,
-                               a = input$a, b = input$b, distyp = input$distyp, penalty = input$penalty, parallel = input$parallel)
-    } else if(input$algorithm == "CE.ZINB"){
-        bp = CE.ZINB(as.data.frame(data$Count0), Nmax = input$Nmax, eps = input$eps, rho = input$rho, M = input$M, h = input$h,
-                     a = input$a, b = input$b, distyp = input$distyp, penalty = input$penalty, parallel = input$parallel)
-    } else {
-        bp = CE.ZINB.Init(as.data.frame(data$Count0), as.numeric(unlist(strsplit(input$init.locs,","))),
-                          eps = input$eps, rho = input$rho, M = input$M, h = input$h,
-                          a = input$a, b = input$b, distyp = input$distyp, penalty = input$penalty,
-                          var.init = input$var.init, parallel = input$parallel)
-    }
-    return(bp)
-      
-    } else if(input$changepoint == "cumSeg"){
-      
-    x <- 1:nrow(data)
-      
-    cumSeg = jumpoints(as.matrix(data$Count0), x, output = input$output,
-                       k = input$k, round = input$round, psi = psi(), control = fit(), selection = sel())
-    return(cumSeg)
-    } else {
-      
-    if(input$pred == "Yes" && !is.null(predictors)){pred <- as.matrix(predictors)
-    } else {pred <- NULL}
-      
-    bcp = bcp::bcp(y = as.matrix(data$Count0), x = pred, id = NULL,
-                   adj = NULL, w0 = w0(),
-                   p0 = input$p0, d = input$d, burnin = input$burnin, mcmc = input$mcmc,
-                   return.mcmc = input$return.mcmc, boundaryType = input$boundaryType, p1 = input$p1,
-                   freqAPP = input$freqApp, nreg = input$nreg)
-    return(bcp)
-    }
-})
-  
-# Output of data table
+# Output of the data table
   
 output$contents <- DT::renderDataTable({
-    if (is.null(input$file)) {return(NULL)}
-    df <- DT::datatable(filedata())
-    df
+    req(input$file)
+    df <- filedata1()
+    return(DT::datatable(df, options = list(scrollX = TRUE)))
 })
   
-# Output of changepoint method summary results
-  output$changepoint <- renderPrint({
-  req(input$file)
-  changepoint()
+# Output of the numeric predictors summary table
+  
+output$predictors <- renderPrint({
+    req(input$file)
+    df <- filedata2()
+    if (is.null(df)){return(NULL)
+    }else {
+    return(summary(df))}
 })
   
-# Output of changepoint method plot
+# Create INLA mesh
   
-output$changepointPlot <- renderPlot({
+mesh <- reactive({
+    m <- filedata1()
+    coords <- cbind(m$Latitude, m$Longitude)
+    bnd = inla.nonconvex.hull(coords, convex = input$convex)
+    
+    out <- INLA::inla.mesh.2d(
+    loc = coords,
+    boundary = bnd,
+    max.edge = input$max.edge,
+    min.angle = rev(input$min.angle),
+    cutoff = input$cutoff,
+    offset = input$offset)
+    return(out)
+})
+  
+mm <- eventReactive(input$mesh, {
+    m <- mesh()
+    df <- filedata1()
+    coords <- cbind(df$Latitude, df$Longitude)
+    plot(m)
+    points(coords, col = "red")
+})
+  
+# Output of mesh
+  
+output$mesh <- renderPlot({return(mm())})
+  
+# Create numeric predictor variables for joint model
+  
+filedata3 <- reactive({
+    if (is.null(input$file)){return(NULL)}
+    df <- filedata1()
+    pred <- filedata2()
+    pred <- pred[rep(seq_len(nrow(pred)), length(unique(df$Locality))), ]
+
+    pred.z = matrix(NA, ncol = 10, nrow = nrow(pred)*2)
+    for(i in 1:ncol(pred)){
+    for(j in 1:nrow(pred)){pred.z[j,i] = pred[j,i]}}
+    pred.z = data.frame(pred.z)
+    colnames(pred.z) = gsub(" ", "", paste("p", 1:10, ".z"))
+    
+    pred.y = matrix(NA, ncol = 10, nrow = nrow(pred)*2)
+    for(i in 1:ncol(pred)){
+    for(j in 1:nrow(pred)){pred.y[j+nrow(pred),i] = pred[j,i]}}
+    pred.y = data.frame(pred.y)
+    colnames(pred.y) = gsub(" ", "", paste("p", 1:10, ".y"))
+    
+    return(cbind(pred.z, pred.y))
+})
+
+# Create dependent variable vectors for joint model  
+filedata4 <- reactive({
+    
+    if (is.null(filedata1())){return(NULL)}
+    df <- filedata1()
+    z = df$zero
+    y = df$count
+    
+    if(input$distribution == "Negative Binomial Hurdle"){
+    y[y == 0] <- NA
+    }else {y = df$count}
+    Y = cbind(z=c(z, rep(NA, length(z))), y=c(rep(NA, length(y)), y))
+    return(Y)
+})
+  
+# Rendering the list to the ui
+output$uiAdded <- renderUI({checkboxGroupInput('added', 'List of combinations', choices = names(interacts))})
+  
+# The main named list that will be used in other tasks
+interacts <- reactiveValues()
+makeReactiveBinding("interacts")
+  
+observe({
+    input$actionBtnAdd # Trigger Add actions
+    isolate({
+    a <- c(input$makeInteract1,input$makeInteract2)
+    b <- a %>% paste(collapse = "*")
+    if(b != "")
+    interacts[[b]] <- a
+})})
+  
+# Checkbox list of all numeric variables to use
+independent <- reactive({
+    if(!is.null(input$file)){
+    df <- filedata1()
+    if(!is.null(filedata2())){
+    return(names(df[ , !(names(df) %in% c("count", "zero", "Latitude", "Longitude", "Locality"))]))}}
+})
+  
+output$independent <- renderUI({checkboxGroupInput("independent", "Independent (Predictor) Variables:", independent())})
+
+# Variables to Add to the List of Combinations
+makeInteract <- reactive({
+    if(!is.null(input$file)){
+    df <- filedata1()
+    if(!is.null(filedata2())){
+    return(names(df[ , !(names(df) %in% c("count", "zero", "Latitude", "Longitude", "Locality"))]))}}
+})
+  
+output$makeInteract1 <- renderUI({selectInput("makeInteract1", "Variable1 For Interaction:", makeInteract())})
+output$makeInteract2 <- renderUI({selectInput("makeInteract2", "Variable2 For Interaction:", makeInteract())})
+
+# distribution 
+distribution <- reactive({
+  if(input$distribution == "Negative Binomial"){distribution = "nbinomial"
+  } else if(input$distribution == "Zeroinflated Negative Binomial") {distribution = "zeroinflatednbinomial1"
+  } else {distribution = "zeroinflatednbinomial0"}
+  return(distribution)
+})
+
+# Create joint zero inflation model
+fitsummary <- reactive({
   req(input$file)
-  if(input$changepoint == "breakpoint"){
-  data <- filedata()
-  profilePlot(changepoint(), as.data.frame(data$Count0))
+  
+  df1 <- filedata1()
+  df2 <- filedata3()
+  Y <- filedata4()
+  
+  coords <- cbind(df1$Latitude, df1$Longitude)
+  spde = INLA::inla.spde2.matern(mesh(), constr = TRUE)
+  coords$hhid = mesh()$idx$loc
+  
+  mu.z = c(rep(1,nrow(df1)), rep(NA, nrow(df1))); mu.y = c(rep(NA, nrow(df1)), rep(1,nrow(df1)))
+  effect = rep(df1$Year, 2); S = rep(coords$hhid, 2)
+  
+  if (input$pred == "no"){
+    
+  data = list(S = S, Y = Y, mu.z = mu.z, mu.y = mu.y, effect = effect)
+    
+  formula = paste(paste("Y ~ 0 + mu.z + mu.y +"), 
+            paste("+ f(effect, model = ", input$tempeffect,")"), 
+            paste("+ f(S, model = ", input$speffect,")"))
   } else {
-  plot(changepoint())}
+  
+  Year.z = c(df1$Year, rep(NA, nrow(df1))); Year.y = c(rep(NA, nrow(df1)), df1$Year)
+  p1.z = df2$p1.z; p2.z = df2$p2.z; p3.z = df2$p3.z; p4.z = df2$p4.z; p5.z = df2$p5.z 
+  p6.z = df2$p6.z; p7.z = df2$p7.z; p8.z = df2$p8.z; p9.z = df2$p9.z; p10.z = df2$p10.z
+  p1.y = df2$p1.y; p2.y = df2$p2.y; p3.y = df2$p3.y; p4.y = df2$p4.y; p5.y = df2$p5.y
+  p6.y = df2$p6.y; p7.y = df2$p7.y; p8.y = df2$p8.y; p9.y = df2$p9.y; p10.y = df2$p10.y
+      
+  data = list(S = S, Y = Y, mu.z = mu.z, mu.y = mu.y, effect = effect,
+              Year.z = Year.z, Year.y = Year.y,
+              p1.z = p1.z, p2.z = p2.z, p3.z = p3.z, p4.z = p4.z, p5.z = p5.z, 
+              p6.z = p6.z, p7.z = p7.z, p8.z = p8.z, p9.z = p9.z, p10.z = p10.z,
+              p1.y = p1.y, p2.y = p2.y, p3.y = p3.y, p4.y = p4.y, p5.y = p5.y, 
+              p6.y = p6.y, p7.y = p7.y, p8.y = p8.y, p9.y = p9.y, p10.y = p10.y)
+
+  if(!is.null(input$added)){
+        
+  y = as.list(input$added)
+  p = lapply(seq_along(y), function(x) gsub("*", " ", y[[x]], fixed = TRUE))
+  p = lapply(seq_along(y), function(x) strsplit(p[[x]], " "))
+  zz <- lapply(seq_along(y), function(x) gsub(" ", "",  paste(p[[x]][[1]], ".z")))
+  zz = lapply(seq_along(y), function(x) stri_c(zz[[x]], collapse = "*"))
+  yy <- lapply(seq_along(y), function(x) gsub(" ", "",  paste(p[[x]][[1]], ".y")))
+  yy = lapply(seq_along(y), function(x) stri_c(yy[[x]], collapse = "*"))
+        
+  t = as.list(input$independent)
+  pp <- lapply(seq_along(t), function(x) gsub(" ", "",  paste(t[[x]], ".z")))
+  qq <- lapply(seq_along(t), function(x) gsub(" ", "",  paste(t[[x]], ".y")))
+        
+  formula = paste(paste("Y ~ 0 + mu.z + mu.y +"), paste(pp,collapse="+"), paste("+", qq, collapse = "+"),
+            paste("+", zz, collapse = "+"), paste("+", yy, collapse = "+"),
+            paste("+ f(effect, model = ", input$tempeffect,")"), 
+            paste("+ f(S, model = ", input$speffect,")"))
+  }else {
+      
+  t = as.list(input$independent)
+  pp <- lapply(seq_along(t), function(x) gsub(" ", "",  paste(t[[x]], ".z")))
+  qq <- lapply(seq_along(t), function(x) gsub(" ", "",  paste(t[[x]], ".y")))
+        
+  formula = paste(paste("Y ~ 0 + mu.z + mu.y +"), paste(pp,collapse="+"), 
+            paste("+", qq, collapse = "+"),
+            paste("+ f(effect, model = ", input$tempeffect,")"), 
+            paste("+ f(S, model = ", input$speffect,")"))
+  }}
+  model <- inla(as.formula(formula), data = data, family = c("binomial", distribution()),
+                control.family = list(list(link = "logit"), list(link = "log")),
+                control.compute = list(dic = TRUE, cpo = TRUE), verbose = TRUE)
+  return(model)
 })
+  
+proj <- reactive({
+    if (is.null(fitsummary())){(NULL)}
+    proj <- INLA::inla.mesh.projector(mesh(), projection = "longlat", dims = c(150, 100))
+    return(proj)
+})
+  
+# Summary output of joint zero inflation model
+  
+fitsum <- eventReactive(input$summary, {summary(fitsummary())})
+output$summary <- renderPrint({return(fitsum())})
+  
+# Create posterior mean plot
+  
+pmPlot <- reactive({
+    if(input$speffect == "'iid'"){return(NULL)
+    } else {
+    mp <- levelplot(row.values=proj()$x, column.values=proj()$y,
+                    inla.mesh.project(proj(), fitsummary()$summary.random$S$mean),
+                    xla='Latitude', yla='Longitude',
+                    main='posterior mean plot', contour=TRUE,
+                    xlim=range(proj()$x), ylim=range(proj()$y))
+    return(mp)}
+})
+  
+# Create posterior standard deviation plot
+  
+psdPlot <- reactive({
+    if(input$speffect == "'iid'"){return(NULL)
+    } else {
+    sdp <- levelplot(row.values=proj()$x, column.values=proj()$y,
+                     inla.mesh.project(proj(), fitsummary()$summary.random$S$sd),
+                     xla='Latitude', yla='Longitude',
+                     main='posterior standard deviation plot', contour=TRUE,
+                     xlim=range(proj()$x), ylim=range(proj()$y))
+    return(sdp)}
+})
+  
+# Output of posterior standard deviation plot
+  
+output$posteriormPlot <- renderPlot({pmPlot()})
+  
+# Output of posterior standard deviation plot
+  
+output$posteriorsdPlot <- renderPlot({psdPlot()})
+  
+url <- a("Definition", href="https://rdrr.io/github/andrewzm/INLA/man/inla.mesh.2d.html")
+output$tab <- renderUI({tagList("URL link:", url)})
   
 }
 
