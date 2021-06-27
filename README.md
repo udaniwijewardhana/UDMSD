@@ -32,9 +32,10 @@ Dataframe with "Count", "Year", "Latitude", "Longitude", "Locality" and other nu
 
 The 'Single-species Joint Model' gives a combination of count model and zero-inflation model results with spatial and temporal scale using INLA. This window also visualizes posterior mean and standard deviation plots for spatial and spatio-temporal models. This shows INLA mesh, summary results of the model and posterior plots (when applicable). Here, users can change the mesh parameters as well as spatial and temporal effect model in order to find the most suitable model. 
 
-### To install and explore the application in your R, you could type the following on your r console. 
+### Installation
+
+To build this Shiny app, we need to clone the Zip file from UDMSD and save it in our computer. This folder contains a sample data .CSV file, the vignette and app.R file. Then, we can launch the app by clicking the Run App button at the top of the RStudio editor or by executing runApp("appdir_path")where appdir_path is the path of the directory that contains the app.R file. For this we need to install R and RStudio in our computer. The users who do not have R in their computer can use UDMSD to launch the Shiny app. The application uses the R-INLA package which can be downloaded from http://www. r ??? inla. org.
 
 ```r
 shiny::runGitHub( "UDMSD", "uwijewardhana") 
 ```
-- User can access the standard R-repository to download and install package R-INLA by http://www.r-inla.org/download.
