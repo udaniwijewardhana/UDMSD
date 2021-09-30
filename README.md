@@ -10,7 +10,7 @@ These basis functions are defined over a triangulation of the domain; this trian
 
 To know if the rate at which abundance is changing over time differs according to a relevant predictor variable, we have included the facility to add interaction terms between any two predictor variables in our regression models. The interaction with a categorical variable tells us what the difference in slope is and whether this difference is significant.
 
-UDMSD is a Shiny web application that allows to visualize spatial, temporal or spatio-temporal abundance/occurrence data, estimate significant factors and the trend. It is addressed to ecologists interested in analysing species abundance/occurrence data but lacking the appropriate theoretical knowledge to use this statistical software is required. The application allows to fit Bayesian Zero inflation models to obtain significant predictor estimates and their uncertainty by using INLA. To carry out these analyses users simply need to click the buttons that create the input files required, execute the software and process the output to generate tables of values and plots with the results. The application allows user interaction and creates interactive visualizations such as species distribution map and posterior maps. This INLA models could be done only for geostatistical data. 
+UDMSD is a Shiny web application that allows to visualize spatial, temporal or spatio-temporal abundance/occurrence data, estimate significant numerical factors and the trend. It is addressed to ecologists interested in analysing species abundance/occurrence data but lacking the appropriate theoretical knowledge to use this statistical software is required. The application allows to fit Bayesian Zero inflation models to obtain significant predictor estimates and their uncertainty by using INLA. To carry out these analyses users simply need to click the buttons that create the input files required, execute the software and process the output to generate tables of values and plots with the results. The application allows user interaction and creates interactive visualizations such as species distribution map and posterior maps. This INLA models could be done only for geostatistical data. 
 
 The application consists of 2 pages with main window: main window allows the user to upload the input files (data file and predictors file) and also gives the option to normalize or standardize the data or predictors data. 
 
@@ -20,14 +20,14 @@ The application consists of 2 pages with main window: main window allows the use
 
 In this page, user can fit joint species distribution models using INLA. Since species abundance data usually have access and true zeros, zero inflation models are ideal to fit the abundance. Therefore, while overcoming overdispersion Negative Binomial model, Negative Binomial Hurdle model and ZINB model have given as options using log linear regression as the link function. Binomial distribution has used for occurrence using logistic regression as the link function. First, a user must adjust the parameters to build the INLA mesh. Only non-convex meshes could be built in this app. Then users can fit spatial, temporal or spatio-temporal joint species distribution while changing the model options and distribution. Users also have the option to select which type of spatial and temporal models could be done. Temporal model has the option to choose the random effect model such as 'iid', 'ar1', 'rw1' or 'rw2' and the spatial effect model such as 'iid' for temporal models and 'spde' for spatial or spatio-temporal models. Posterior plots are visualizing for spatial or spatio-temporal models.
 
-### Input file: 
+# Input file: 
 
-Dataframe with "Count", "Year", "Latitude", "Longitude", "Locality" and other numeric predictors (optional). These variables are case sensitive. Only applicable up to five predictor variables. Predictor variables display as "p.z1", "p.y2", etc. The order is the exact order in dataframe.    
+Dataframe with "Count", "Trend", "Latitude", "Longitude", "Locality" and other numeric predictors (optional). These variables are case sensitive. Only applicable up to five predictor variables. Predictor variables display as "p.z1", "p.y2", etc. The order is the exact order in dataframe.    
 
 1. "Locality" - Detected Location 
 2. "Latitude" - Latitude coordinate of the Location 
 3. "Longitude" - Longitude coordinate of the Location 
-4. "Year" - Detected Year
+4. "Trend" - Annual/Seasonal/Daily
 5. "Count" - Species count
 
 The 'Single-species Joint Model' gives a combination of count model and zero-inflation model results with spatial and temporal scale using INLA. This window also visualizes posterior mean and standard deviation plots for spatial and spatio-temporal models. This shows INLA mesh, summary results of the model and posterior plots (when applicable). Here, users can change the mesh parameters as well as spatial and temporal effect model in order to find the most suitable model. 
@@ -37,5 +37,5 @@ The 'Single-species Joint Model' gives a combination of count model and zero-inf
 To build this Shiny app, we need to clone the Zip file from UDMSD and save it in our computer. This folder contains a sample data .CSV file, the vignette and app.R file. Then, we can launch the app by clicking the Run App button at the top of the RStudio editor or by executing runApp("appdir_path")where appdir_path is the path of the directory that contains the app.R file. For this we need to install R and RStudio in our computer. The users who do not have R in their computer can use UDMSD to launch the Shiny app. The application uses the R-INLA package which can be downloaded from http://www. r ??? inla. org.
 
 ```r
-Udani Wijewardhana (udaniwijewardhana@gmail.com)
+shiny::runGitHub( "UDMSD", "uwijewardhana") 
 ```
