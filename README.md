@@ -22,19 +22,19 @@ In this page, user can fit joint species distribution models using INLA. Since s
 
 # Input file: 
 
-Dataframe with "Count", "Trend", "Latitude", "Longitude", "Locality" and other numeric predictors (optional). These variables are case sensitive. Only applicable up to five predictor variables. Predictor variables display as "p.z1", "p.y2", etc. The order is the exact order in dataframe.    
+Dataframe with "Count", "Year", "Latitude", "Longitude", "Locality" and other numeric predictors (optional). These variables are case sensitive. Only applicable up to five predictor variables. Predictor variables display as "p.z1", "p.y2", etc. The order is the exact order in dataframe.    
 
 1. "Locality" - Detected Location 
 2. "Latitude" - Latitude coordinate of the Location 
 3. "Longitude" - Longitude coordinate of the Location 
-4. "Trend" - Annual/Seasonal/Daily
+4. "Year" - Detected Year
 5. "Count" - Species count
 
 The 'Single-species Joint Model' gives a combination of count model and zero-inflation model results with spatial and temporal scale using INLA. This window also visualizes posterior mean and standard deviation plots for spatial and spatio-temporal models. This shows INLA mesh, summary results of the model and posterior plots (when applicable). Here, users can change the mesh parameters as well as spatial and temporal effect model in order to find the most suitable model. 
 
 ### Installation
 
-To build this Shiny app, we need to clone the Zip file from UDMSD and save it in our computer. This folder contains a sample data .CSV file, the vignette and app.R file. Then, we can launch the app by clicking the Run App button at the top of the RStudio editor or by executing runApp("appdir_path")where appdir_path is the path of the directory that contains the app.R file. For this we need to install R and RStudio in our computer. The users who do not have R in their computer can use UDMSD to launch the Shiny app. The application uses the R-INLA package which can be downloaded from http://www. r ??? inla. org.
+To build this Shiny app, we need to clone the Zip file from UDMSD and save it in our computer. This folder contains a sample data .CSV file, the vignette and app.R file. Then, we can launch the app by clicking the Run App button at the top of the RStudio editor or by executing runApp("appdir_path")where appdir_path is the path of the directory that contains the app.R file. For this we need to install R and RStudio in our computer. The users who do not have R in their computer can use UDMSD to launch the Shiny app. The application uses the R-INLA package which can be downloaded from http://www.r-inla.org/download. 
 
 ```r
 shiny::runGitHub( "UDMSD", "uwijewardhana") 
