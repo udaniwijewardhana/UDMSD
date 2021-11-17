@@ -14,12 +14,12 @@ library(stringi)
 # First the user needs to upload the data csv file into the application and 
 # then select whether normalize the numerical predictors or not.
 #         The data file should include only:
-#         1. Trend - annual/seasonal/daily
+#         1. Year - Detected Year
 #         2. Locality - Location
 #         3. Latitude
 #         4. Longitude
 #         5. count - Dependent variable for count model
-#         6. zero - Dependent variable for count model
+#         6. zero - Dependent variable for zero inflation model
 #         with or without predictor variables (numeric).
 #         The above names are case sensitive."),
 # A sample format of the data can be found in https://github.com/uwijewardhana/UDMSD.
@@ -101,7 +101,7 @@ filedata2 <- reactive({
     if(ncol(y)>6){
     p = subset(y, select = -c(count, zero, Latitude, Longitude))
     p <- unique(p)
-    p = subset(p, select = -c(Trend))
+    p = subset(p, select = -c(Year))
     }else {p = NULL}
     
     if(!is.null(p)){
@@ -256,7 +256,7 @@ fitsummary <- reactive({
   coords$hhid = mesh()$idx$loc
   
   mu.z = c(rep(1,nrow(df1)), rep(NA, nrow(df1))); mu.y = c(rep(NA, nrow(df1)), rep(1,nrow(df1)))
-  effect = rep(df1$Trend, 2); S = rep(coords$hhid, 2)
+  effect = rep(df1$Year, 2); S = rep(coords$hhid, 2)
   
   if (input$pred == "no"){
     
@@ -267,14 +267,14 @@ fitsummary <- reactive({
             paste("+ f(S, model = ", input$speffect,")"))
   } else {
   
-  Trend.z = c(df1$Trend, rep(NA, nrow(df1))); Trend.y = c(rep(NA, nrow(df1)), df1$Trend)
+  Year.z = c(df1$Year, rep(NA, nrow(df1))); Year.y = c(rep(NA, nrow(df1)), df1$Year)
   p1.z = df2$p1.z; p2.z = df2$p2.z; p3.z = df2$p3.z; p4.z = df2$p4.z; p5.z = df2$p5.z 
   p6.z = df2$p6.z; p7.z = df2$p7.z; p8.z = df2$p8.z; p9.z = df2$p9.z; p10.z = df2$p10.z
   p1.y = df2$p1.y; p2.y = df2$p2.y; p3.y = df2$p3.y; p4.y = df2$p4.y; p5.y = df2$p5.y
   p6.y = df2$p6.y; p7.y = df2$p7.y; p8.y = df2$p8.y; p9.y = df2$p9.y; p10.y = df2$p10.y
       
   data = list(S = S, Y = Y, mu.z = mu.z, mu.y = mu.y, effect = effect,
-              Trend.z = Trend.z, Trend.y = Trend.y,
+              Year.z = Year.z, Year.y = Year.y,
               p1.z = p1.z, p2.z = p2.z, p3.z = p3.z, p4.z = p4.z, p5.z = p5.z, 
               p6.z = p6.z, p7.z = p7.z, p8.z = p8.z, p9.z = p9.z, p10.z = p10.z,
               p1.y = p1.y, p2.y = p2.y, p3.y = p3.y, p4.y = p4.y, p5.y = p5.y, 
